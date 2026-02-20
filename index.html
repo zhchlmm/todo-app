@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <div class="app-header">
+      <h1>Todo App</h1>
+      <label class="theme-toggle" for="theme-toggle">
+        <span>暗色模式</span>
+        <input id="theme-toggle" type="checkbox" role="switch" aria-label="切换深色模式" />
+      </label>
+    </div>
+
+    <form id="todo-form" class="todo-form">
+      <input id="todo-input" type="text" placeholder="输入待办事项" aria-label="Todo 输入框" />
+      <button type="submit">添加</button>
+    </form>
+
+    <ul id="todo-list" class="todo-list"></ul>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
