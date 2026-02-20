@@ -2,11 +2,16 @@ const form = document.getElementById('todo-form');
 const input = document.getElementById('todo-input');
 const list = document.getElementById('todo-list');
 const themeToggle = document.getElementById('theme-toggle');
+const filterTabs = document.getElementById('filter-tabs');
+const appStats = document.getElementById('app-stats');
 
 const STORAGE_KEY = 'todos';
 const THEME_STORAGE_KEY = 'theme';
 
+let currentFilter = 'all';
+
 initTheme();
+initFilters();
 
 let todos = loadTodos();
 
@@ -53,6 +58,26 @@ function initTheme() {
   });
 }
 
+function initFilters() {
+  if (!filterTabs) {
+    return;
+  }
+
+  filterTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) {
+      return;
+    }
+
+    currentFilter = tab.dataset.filter;
+    filterTabs.querySelectorAll('.filter-tab').forEach((t) => {
+      t.classList.toggle('active', t === tab);
+      t.setAttribute('aria-selected', String(t === tab));
+    });
+    renderTodos();
+  });
+}
+
 function loadTodos() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
@@ -71,12 +96,69 @@ function saveTodos() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
 }
 
-function renderTodos() {
-  list.innerHTML = '';
+function updateStats() {
+  if (!appStats) {
+    return;
+  }
 
-  todos.forEach((todo) => {
+  const total = todos.length;
+  const completed = todos.filter((t) => t.completed).length;
+  const remaining = total - completed;
+
+  if (total === 0) {
+    appStats.textContent = '暂无待办事项';
+  } else {
+    appStats.textContent = `${remaining} 个待完成 · ${completed} 个已完成`;
+  }
+}
+
+function getFilteredTodos() {
+  if (currentFilter === 'active') {
+    return todos.filter((t) => !t.completed);
+  }
+
+  if (currentFilter === 'completed') {
+    return todos.filter((t) => t.completed);
+  }
+
+  return todos;
+}
+
+function renderTodos(newTodoId = null) {
+  list.innerHTML = '';
+  updateStats();
+
+  const filtered = getFilteredTodos();
+
+  if (filtered.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'empty-state';
+
+    const icon = document.createElement('span');
+    icon.className = 'empty-state-icon';
+    icon.textContent = '📋';
+
+    const msg = document.createElement('p');
+    msg.textContent =
+      currentFilter === 'completed'
+        ? '暂无已完成事项'
+        : currentFilter === 'active'
+          ? '暂无待完成事项'
+          : '添加你的第一个待办事项吧！';
+
+    empty.appendChild(icon);
+    empty.appendChild(msg);
+    list.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((todo) => {
     const li = document.createElement('li');
     li.className = 'todo-item';
+
+    if (todo.id === newTodoId) {
+      li.classList.add('new-item');
+    }
 
     const content = document.createElement('div');
     content.className = 'todo-content';
@@ -88,7 +170,13 @@ function renderTodos() {
     checkbox.addEventListener('change', () => {
       todo.completed = checkbox.checked;
       saveTodos();
-      renderTodos();
+      span.className = `todo-text${todo.completed ? ' completed' : ''}`;
+      updateStats();
+
+      if (currentFilter !== 'all') {
+        li.classList.add('removing');
+        li.addEventListener('animationend', () => renderTodos(), { once: true });
+      }
     });
 
     const span = document.createElement('span');
@@ -97,11 +185,19 @@ function renderTodos() {
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'delete-btn';
-    deleteButton.textContent = '删除';
+    deleteButton.textContent = '×';
+    deleteButton.setAttribute('aria-label', `删除 ${todo.text}`);
     deleteButton.addEventListener('click', () => {
-      todos = todos.filter((item) => item.id !== todo.id);
-      saveTodos();
-      renderTodos();
+      li.classList.add('removing');
+      li.addEventListener(
+        'animationend',
+        () => {
+          todos = todos.filter((item) => item.id !== todo.id);
+          saveTodos();
+          renderTodos();
+        },
+        { once: true },
+      );
     });
 
     content.appendChild(checkbox);
@@ -120,14 +216,24 @@ form.addEventListener('submit', (event) => {
     return;
   }
 
+  const newId = crypto.randomUUID();
   todos.push({
-    id: Date.now(),
+    id: newId,
     text,
     completed: false,
   });
 
   saveTodos();
-  renderTodos();
+
+  if (currentFilter === 'completed') {
+    currentFilter = 'all';
+    filterTabs.querySelectorAll('.filter-tab').forEach((t) => {
+      t.classList.toggle('active', t.dataset.filter === 'all');
+      t.setAttribute('aria-selected', String(t.dataset.filter === 'all'));
+    });
+  }
+
+  renderTodos(newId);
 
   input.value = '';
   input.focus();
