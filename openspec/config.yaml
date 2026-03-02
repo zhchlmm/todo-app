@@ -1,5 +1,12 @@
 schema: spec-driven
 
+context: |
+  语言：中文（简体）
+  所有产出物必须用简体中文撰写。这些除外:
+  - 保持技术用语使用英语，比如："API", "REST", "GraphQL"等
+  - 代码示例和文件路径使用英语
+
+
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
